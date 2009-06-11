@@ -6,18 +6,17 @@ require "activesupport"
 require "chronic"
 require "set"
 
-def fetch(imap, time, label, ignored_messages, ignored_addresses)
-  ignored_addresses = Set.new(ignored_addresses)
-  ignored_messages = Set.new(ignored_messages)
+def fetch(imap, time, label, ignored)
+  ignored = Set.new(ignored)
   imap.select(label)
   ids = imap.search ["SINCE", Time.now - time]
   by_id = {}
   by_reply = {}
   imap.fetch(ids, "ENVELOPE").each_with_index do |envelope, i|
     struct = envelope.attr["ENVELOPE"]
-    ignoring = ignored_messages.include?(struct.message_id)
+    ignoring = ignored.include?(struct.message_id)
     struct.from.each do |address|
-      ignoring = true if ignored_addresses.include?(address)
+      ignoring = true if ignored.include?(address)
     end
     unless ignoring
       by_id[struct.message_id] = struct
@@ -27,6 +26,12 @@ def fetch(imap, time, label, ignored_messages, ignored_addresses)
   [by_id, by_reply]
 end
 
+post "/ignore" do
+  File.open(File.join(ENV["HOME"], ".ignored"), "a") do |f|
+    f.puts params[:item]
+  end
+  "ok"
+end
 
 get "/" do
   erb :index
@@ -48,13 +53,10 @@ post "/" do
     time = Chronic.parse(params[:span]) || 1.month.ago
     delta = Time.now - time
     
-    ignored_addresses = File.read(File.join(ENV["HOME"], ".ignored_addresses")).split("\n") rescue []
-    ignored_messages = File.read(File.join(ENV["HOME"], ".ignored_messages")).split("\n") rescue []
+    ignored = File.read(File.join(ENV["HOME"], ".ignored")).split("\n") rescue []
     
-    @inbox_by_id, @inbox_by_reply = fetch(imap, delta, '[Gmail]/All Mail', 
-                                          ignored_messages, ignored_addresses)
-    @sent_by_id,  @sent_by_reply  = fetch(imap, delta, '[Gmail]/Sent Mail', 
-                                          ignored_messages, ignored_addresses)
+    @inbox_by_id, @inbox_by_reply = fetch(imap, delta, '[Gmail]/All Mail', ignored)
+    @sent_by_id,  @sent_by_reply  = fetch(imap, delta, '[Gmail]/Sent Mail', ignored)
     
     @i_dropped_keys = @inbox_by_id.keys - @sent_by_reply.keys
     @they_dropped_keys = @sent_by_id.keys - @inbox_by_reply.keys

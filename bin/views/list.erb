@@ -2,7 +2,12 @@
 	<head>
 		<script src="/jquery.js"></script>
 		<script>
-		
+			function ignore(message, email) {
+				$("#"+message).hide();
+				$.post("/ignore", {
+					"item[]": message 
+				});
+			}
 		</script>
 	<body>
 		<h3>Messages you need to reply to</h3>
@@ -15,13 +20,13 @@
 			</tr>
 			<% @i_dropped_keys.each do |key| %>
 				<% struct = @inbox_by_id[key] %>
-				<tr>
+				<tr id="#{key}">
 					<td><%= struct.subject%></td>
-					<td><%= struct.from.join(", ") %></td>
+					<td><%= struct.from.map{|s| %["#{s.name}" #{s.mailbox}@#{s.host}] }.join(", ") %></td>
 					<td><%= struct.date.to_s %></td>
 					<td> 
-						Ignore address
-						Ignore message
+						<a href="#" onclick="return ignore('<%=key %>', '<%="#{struct.from.first.mailbox}@#{struct.from.first.host}"%>')">Ignore address</a>
+						<a href="#" onclick="return ignore('<%=key %>', false)">Ignore message</a>
 					</td>
 				</tr>
 			<% end %>
@@ -36,13 +41,13 @@
 			</tr>
 			<% @they_dropped_keys.each do |key| %>
 				<% struct = @sent_by_id[key] %>
-				<tr>
+				<tr id="#{key}">
 					<td><%= struct.subject%></td>
-					<td><%= struct.to.join(", ") %></td>
+					<td><%= struct.to.map{|s| %["#{s.name}" #{s.mailbox}@#{s.host}] }.join(", ") %></td>
 					<td><%= struct.date.to_s %></td>
 					<td> 
-						Ignore address
-						Ignore message
+						<a href="#" onclick="return ignore('<%=key %>', '<%="#{struct.to.first.mailbox}@#{struct.to.first.host}"%>')">Ignore address</a>
+						<a href="#" onclick="return ignore('<%=key %>', false)">Ignore message</a>
 					</td>
 				</tr>
 			<% end %>
