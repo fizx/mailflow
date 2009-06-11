@@ -1,0 +1,75 @@
+#!/usr/bin/env ruby
+require "rubygems"
+require "sinatra"
+require "net/imap"
+require "activesupport"
+require "chronic"
+require "set"
+
+def fetch(imap, time, label, ignored_messages, ignored_addresses)
+  ignored_addresses = Set.new(ignored_addresses)
+  ignored_messages = Set.new(ignored_messages)
+  imap.select(label)
+  ids = imap.search ["SINCE", Time.now - time]
+  by_id = {}
+  by_reply = {}
+  imap.fetch(ids, "ENVELOPE").each_with_index do |envelope, i|
+    struct = envelope.attr["ENVELOPE"]
+    ignoring = ignored_messages.include?(struct.message_id)
+    struct.from.each do |address|
+      ignoring = true if ignored_addresses.include?(address)
+    end
+    unless ignoring
+      by_id[struct.message_id] = struct
+      by_reply[struct.in_reply_to] = struct
+    end
+  end
+  [by_id, by_reply]
+end
+
+
+get "/" do
+  erb :index
+end
+
+post "/" do 
+  @log = []
+  begin
+    cfg = {
+      :server => "imap.gmail.com",
+      :port => 993,
+      :user => params[:email],
+      :pass => params[:password]
+    }
+
+    @log << imap = Net::IMAP.new(cfg[:server], cfg[:port], true)  
+    @log << imap.login(cfg[:user], cfg[:pass])
+    
+    time = Chronic.parse(params[:span]) || 1.month.ago
+    delta = Time.now - time
+    
+    ignored_addresses = File.read(File.join(ENV["HOME"], ".ignored_addresses")).split("\n") rescue []
+    ignored_messages = File.read(File.join(ENV["HOME"], ".ignored_messages")).split("\n") rescue []
+    
+    @inbox_by_id, @inbox_by_reply = fetch(imap, delta, '[Gmail]/All Mail', 
+                                          ignored_messages, ignored_addresses)
+    @sent_by_id,  @sent_by_reply  = fetch(imap, delta, '[Gmail]/Sent Mail', 
+                                          ignored_messages, ignored_addresses)
+    
+    @i_dropped_keys = @inbox_by_id.keys - @sent_by_reply.keys
+    @they_dropped_keys = @sent_by_id.keys - @inbox_by_reply.keys
+
+    imap.logout()
+    imap.disconnect()
+  
+    erb :list
+  rescue => e
+    
+    return @log.map(&:to_s).join("\n") + "\n\nError: #{e.message}"
+  end
+end
+
+Thread.new do 
+  sleep 2
+  system "open http://localhost:4567"
+end

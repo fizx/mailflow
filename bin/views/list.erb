@@ -1,0 +1,51 @@
+<html>
+	<head>
+		<script src="/jquery.js"></script>
+		<script>
+		
+		</script>
+	<body>
+		<h3>Messages you need to reply to</h3>
+		<table>
+			<tr>
+				<th>Subject</th>
+				<th>From</th>
+				<th>Date</th>
+				<th>Actions</th>
+			</tr>
+			<% @i_dropped_keys.each do |key| %>
+				<% struct = @inbox_by_id[key] %>
+				<tr>
+					<td><%= struct.subject%></td>
+					<td><%= struct.from.join(", ") %></td>
+					<td><%= struct.date.to_s %></td>
+					<td> 
+						Ignore address
+						Ignore message
+					</td>
+				</tr>
+			<% end %>
+		</table>
+		<h3>Messages they need to reply to</h3>
+		<table>
+			<tr>
+				<th>Subject</th>
+				<th>To</th>
+				<th>Date</th>
+				<th>Actions</th>
+			</tr>
+			<% @they_dropped_keys.each do |key| %>
+				<% struct = @sent_by_id[key] %>
+				<tr>
+					<td><%= struct.subject%></td>
+					<td><%= struct.to.join(", ") %></td>
+					<td><%= struct.date.to_s %></td>
+					<td> 
+						Ignore address
+						Ignore message
+					</td>
+				</tr>
+			<% end %>
+		</table>
+	</body>
+</html>
