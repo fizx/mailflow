@@ -7,9 +7,8 @@ Gem::Specification.new do |s|
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Kyle Maxwell"]
   s.date = %q{2009-06-10}
-  s.default_executable = %q{mailflow}
   s.email = %q{kyle@kylemaxwell.com}
-  s.executables = ["mailflow"]
+  s.executables = ["mailflow", "public", "views"]
   s.extra_rdoc_files = [
     "LICENSE",
      "README.rdoc"
@@ -21,6 +20,11 @@ Gem::Specification.new do |s|
      "README.rdoc",
      "Rakefile",
      "VERSION",
+     "bin/mailflow",
+     "bin/public/jquery.js",
+     "bin/views/index.erb",
+     "bin/views/list.erb",
+     "mailflow.gemspec",
      "test/mailflow_test.rb",
      "test/test_helper.rb"
   ]
